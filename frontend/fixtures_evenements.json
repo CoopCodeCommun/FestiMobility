@@ -1,0 +1,38 @@
+[
+  {
+    "model": "frontend.evenement",
+    "pk": "e1eaaaf2-1c6e-4e6f-9c6e-111111111111",
+    "fields": {
+      "nom": "Festival de la Plage",
+      "description": "Un festival sur la plage pour tous.",
+      "datetime": "2025-07-10T18:00:00",
+      "lieu": "Carnon-Plage",
+      "latitude": 43.5533,
+      "longitude": 3.9581
+    }
+  },
+  {
+    "model": "frontend.evenement",
+    "pk": "e2eaaaf2-1c6e-4e6f-9c6e-222222222222",
+    "fields": {
+      "nom": "Jazz à Sète",
+      "description": "Festival de jazz au bord de la mer.",
+      "datetime": "2025-07-15T20:00:00",
+      "lieu": "Sète",
+      "latitude": 43.4064,
+      "longitude": 3.6928
+    }
+  },
+  {
+    "model": "frontend.evenement",
+    "pk": "e3eaaaf2-1c6e-4e6f-9c6e-333333333333",
+    "fields": {
+      "nom": "Feria de Béziers",
+      "description": "La grande feria annuelle.",
+      "datetime": "2025-08-12T21:00:00",
+      "lieu": "Béziers",
+      "latitude": 43.3442,
+      "longitude": 3.2158
+    }
+  }
+]

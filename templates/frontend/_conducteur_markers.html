@@ -1,0 +1,33 @@
+<script>
+    // Efface tous les anciens marqueurs conducteurs
+    if (window._conducteurMarkers) {
+        window._conducteurMarkers.forEach(function(m) { map.removeLayer(m); });
+    }
+    window._conducteurMarkers = [];
+    var driverIcon = L.icon({
+        iconUrl: 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/car-front-fill.svg',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32],
+        className: 'driver-marker'
+    });
+    var conducteurs = [
+        {% for c in conducteurs %}
+        {
+            nom: "{{ c.nom|escapejs }}",
+            ville: "{{ c.ville_depart|escapejs }}",
+            lat: {{ c.latitude_depart }},
+            lng: {{ c.longitude_depart }},
+            event: "{{ c.evenement.nom|escapejs }}",
+            heure: "{{ c.heure_depart|time:'H:i' }}",
+            places: {{ c.nb_places }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    conducteurs.forEach(function(c) {
+        var marker = L.marker([c.lat, c.lng], {icon: driverIcon})
+            .bindPopup('<b>' + c.nom + '</b><br>Départ: ' + c.ville + '<br>Pour: ' + c.event + '<br>Heure: ' + c.heure + '<br>Places: ' + c.places);
+        marker.addTo(map);
+        window._conducteurMarkers.push(marker);
+    });
+</script>

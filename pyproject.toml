@@ -1,0 +1,28 @@
+[project]
+name = "festimobility"
+version = "0.1.0"
+description = "L’application vise à faciliter le covoiturage pour des événements culturels (festivals, concerts, etc.), en mettant en relation des conducteurs proposant un trajet et des passagers cherchant à se rendre à un événement. L’accent est mis sur la visualisation des trajets sur une carte interactive, la simplicité d’utilisation et la sécurité des échanges."
+authors = [
+    {name = "Jonas Turbeaux",email = "jturbeaux@pm.me"}
+]
+license = {text = "AGPLv3"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "django (>=5.2,<6.0)",
+    "djangorestframework (>=3.16.0,<4.0.0)",
+    "django-htmx (>=1.23.0,<2.0.0)",
+    "requests (>=2.32.3,<3.0.0)",
+    "coverage (>=7.8.0,<8.0.0)"
+]
+package-mode = false
+
+[tool.poetry]
+
+[tool.poetry.group.dev.dependencies]
+ipdb = ">=0.13"
+django-browser-reload = "^1.18.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

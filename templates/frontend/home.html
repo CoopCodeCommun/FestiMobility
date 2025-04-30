@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Bienvenue sur FestiMobility</h1>
+    <div class="alert alert-secondary">
+        <strong>Comment utiliser l'application&nbsp;?</strong><br>
+        <ul class="mb-0">
+            <li>Sélectionnez un événement dans la liste à droite pour voir les trajets proposés pour cet événement.</li>
+            <li>Sur la page d'un événement, cliquez sur la carte pour proposer un trajet ou demander à être récupéré à un endroit précis.</li>
+            <li>Sur la page d'accueil, seuls les événements sont affichés sur la carte : cliquez sur un événement pour accéder à ses trajets.</li>
+            <li>Les trajets (conducteurs) sont visibles uniquement sur la page de l'événement correspondant.</li>
+        </ul>
+    </div>
+    {% if event_courant %}
+        <div class="alert alert-info mb-4">
+            <h3>{{ event_courant.nom }}</h3>
+            <p>{{ event_courant.description }}</p>
+            <ul class="list-unstyled mb-0">
+                <li><strong>Date :</strong> {{ event_courant.datetime|date:'d/m/Y H:i' }} <span class="text-muted">({{ event_courant.datetime|naturaltime }})</span></li>
+                <li><strong>Lieu :</strong> {{ event_courant.lieu }}</li>
+            </ul>
+        </div>
+    {% endif %}
+    <div class="row">
+        <div class="col-md-8">
+            <div id="map" style="height: 400px;"></div>
+            <div id="conducteur-markers"></div>
+        </div>
+        <div class="col-md-4">
+            <h3>Filtres</h3>
+            <div id="filters" class="mb-3">
+                <div class="mb-2">
+                    <label class="form-label">Événement</label><br>
+                    <a href="/" class="btn btn-primary btn-sm me-1 mb-1">Tous</a>
+                    {% for event in evenements %}
+                        <a href="/event/{{ event.id }}/" class="btn btn-outline-primary btn-sm me-1 mb-1">{{ event.nom }}<br><small>{{ event.datetime|date:'d/m H:i' }} <span class="text-muted">({{ event.datetime|naturaltime }})</span></small></a>
+                    {% endfor %}
+                </div>
+
+            </div>
+            <h3>Présentation</h3>
+            <p>
+                Plateforme de covoiturage pour événements (festivals, concerts, etc.).<br>
+                Trouvez ou proposez un trajet, visualisez les opportunités sur la carte !
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<link rel="stylesheet" href="/static/frontend/leaflet.css" />
+<script src="/static/frontend/leaflet.js"></script>
+<script>
+    // Liste des événements pour le JS
+    var evenements = [
+    {% for event in evenements %}
+    {
+        nom: "{{ event.nom|default_if_none:''|escapejs }}",
+        date: "{{ event.date|default_if_none:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+    ];
+
+    var driverMarkers = [];
+    // Définition de l'icône conducteur (voiture bleue)
+    var driverIcon = L.icon({
+        iconUrl: '/static/frontend/marker-icon.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowUrl: '/static/frontend/marker-shadow.png',
+        shadowSize: [41, 41]
+    });
+
+    // Icône événement (marqueur rouge)
+    var eventIcon = L.icon({
+        iconUrl: '/static/frontend/marker-icon-red.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowUrl: '/static/frontend/marker-shadow.png',
+        shadowSize: [41, 41]
+    });
+
+    // Définir la vue initiale
+    {% if event_courant %}
+    var map = L.map('map');
+    {% else %}
+    var map = L.map('map').setView([43.6, 3.4], 9); // Hérault
+    {% endif %}
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    {% if event_courant %}
+    var conducteurs = [
+    {% for c in conducteurs %}
+    {
+        nom: "{{ c.nom|default_if_none:''|escapejs }}",
+        ville: "{{ c.ville_depart|default_if_none:''|escapejs }}",
+        lat: {{ c.latitude_depart|default_if_none:0 }},
+        lng: {{ c.longitude_depart|default_if_none:0 }},
+        event: "{{ c.evenement.nom|default_if_none:''|escapejs }}",
+        heure: "{{ c.heure_depart|default_if_none:''|time:'H:i' }}",
+        places: {{ c.nb_places|default_if_none:0 }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+    ];
+    {% else %}
+    var conducteurs = [];
+    {% endif %}
+
+    // Marqueurs des événements sur la page d'accueil
+    {% if not event_courant %}
+    var evenements = [
+    {% for event in evenements %}
+    {
+        id: "{{ event.id }}",
+        nom: "{{ event.nom|escapejs }}",
+        lat: {{ event.latitude|default_if_none:0 }},
+        lng: {{ event.longitude|default_if_none:0 }},
+        datetime: "{{ event.datetime|date:'d/m/Y H:i' }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+    ];
+    evenements.forEach(function(ev) {
+        if (typeof ev.lat === 'number' && typeof ev.lng === 'number' && !isNaN(ev.lat) && !isNaN(ev.lng) && ev.lat !== 0 && ev.lng !== 0) {
+            L.marker([ev.lat, ev.lng], {icon: eventIcon})
+                .bindPopup('<div style="min-width:180px; color:#222; background:#fff; padding:8px; border-radius:6px;"><b>' + ev.nom + '</b><br>' + ev.datetime + '<br><a href="/event/' + ev.id + '/" class="btn btn-sm btn-primary mt-2">Voir les trajets</a></div>')
+                .addTo(map);
+        }
+    });
+    {% endif %}
+
+    var bounds = [];
+conducteurs.forEach(function(c) {
+    if (typeof c.lat === 'number' && typeof c.lng === 'number' && !isNaN(c.lat) && !isNaN(c.lng)) {
+        var marker = L.marker([c.lat, c.lng], {icon: driverIcon})
+            .bindPopup('<b>' + c.nom + '</b><br>Départ: ' + c.ville + '<br>Pour: ' + c.event + '<br>Heure: ' + c.heure + '<br>Places: ' + c.places);
+        marker.eventName = c.event;
+        marker.date = evenements.find(ev => ev.nom === c.event)?.date || null;
+        marker.addTo(map);
+        driverMarkers.push(marker);
+        if (c.lat !== 0 && c.lng !== 0) {
+            bounds.push([c.lat, c.lng]);
+        }
+    }
+});
+
+// Marqueur rouge pour l'événement courant
+{% if event_courant %}
+var eventLat = {{ event_courant.latitude|default_if_none:0 }};
+var eventLng = {{ event_courant.longitude|default_if_none:0 }};
+if (eventLat && eventLng && eventLat !== 0 && eventLng !== 0) {
+    var eventIcon = L.icon({
+        iconUrl: '/static/frontend/marker-icon-red.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowUrl: '/static/frontend/marker-shadow.png',
+        shadowSize: [41, 41]
+    });
+    var eventMarker = L.marker([
+        eventLat,
+        eventLng
+    ], {icon: eventIcon})
+        .bindPopup('<b>{{ event_courant.nom|escapejs }}</b><br>{{ event_courant.lieu|escapejs }}<br>{{ event_courant.date }}')
+        .addTo(map);
+    bounds.push([eventLat, eventLng]);
+}
+{% endif %}
+
+// Centrer la carte sur l'événement et tous les conducteurs
+if (bounds.length > 0) {
+    map.fitBounds(bounds, {padding: [30, 30]});
+}
+
+    // Fonction de filtrage
+    // Si besoin de filtrage JS, ici uniquement par événement (sinon tout est géré par HTMX)
+
+
+</script>
+    <div id="map-form-container"></div>
+    <script>
+    // Ajout du comportement de clic sur la carte
+    {% if event_courant %}
+    map.on('click', function(e) {
+        // Retire tout formulaire existant
+        let container = document.getElementById('map-form-container');
+        container.innerHTML = '';
+        // Crée le formulaire à partir du template (inclusion AJAX ou inline)
+        {% if event_courant %}
+        let formHtml = `<div id=\"map-click-form\" class=\"card shadow\" style=\"position:absolute; left:${e.containerPoint.x}px; top:${e.containerPoint.y}px; z-index:1000; min-width:300px;\">\n    <div class=\"card-body\">\n        <h5 class=\"card-title\">Que souhaitez-vous faire à cet endroit&nbsp;?</h5>\n        <p class=\"mb-3 text-muted small\">Coordonnées : <span id=\"clicked-coords\">${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}</span></p>\n        <div class=\"d-flex gap-2\">\n            <button id=\"btn-proposer-trajet\" class=\"btn btn-outline-primary flex-fill\" hx-post=\"/proposer-trajet/\" hx-vals='{"lat":' + e.latlng.lat + ', "lng":' + e.latlng.lng + ', "event_id": "{{ event_courant.id }}"}' hx-target=\"#map-click-form .card-body\" hx-swap=\"innerHTML\">Proposer un trajet</button>\n            <button id=\"btn-demander-passager\" class=\"btn btn-outline-secondary flex-fill\" hx-post=\"/demander-recuep/\" hx-vals='{"lat":' + e.latlng.lat + ', "lng":' + e.latlng.lng + ', "event_id": "{{ event_courant.id }}"}' hx-target=\"#map-click-form .card-body\" hx-swap=\"innerHTML\">Demander à être récupéré</button>\n        </div>\n        <button id=\"btn-close-map-form\" class=\"btn btn-link btn-sm mt-2 float-end\">Fermer</button>\n    </div>\n</div>`;
+        container.innerHTML = formHtml;
+        // Gestion fermeture
+        document.getElementById('btn-close-map-form').onclick = function() {
+            container.innerHTML = '';
+        };
+        document.getElementById('btn-proposer-trajet').onclick = function() {
+            // Remplace le contenu du popup (pas toute la div map-form-container)
+            htmx.ajax('GET', `/proposer-trajet/?lat=${e.latlng.lat}&lng=${e.latlng.lng}&event_id={{ event_courant.id }}`, '#map-click-form .card-body');
+        };
+
+        // TODO: Branche le bouton "demander à être récupéré" ici
+        {% else %}
+        let formHtml = `<div id=\"map-click-form\" class=\"card shadow\" style=\"position:absolute; left:${e.containerPoint.x}px; top:${e.containerPoint.y}px; z-index:1000; min-width:300px;\">\n    <div class=\"card-body\">\n        <h5 class=\"card-title\">Que souhaitez-vous faire à cet endroit&nbsp;?</h5>\n        <p class=\"mb-3 text-muted small\">Coordonnées : <span id=\"clicked-coords\">${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}</span></p>\n        <div class=\"d-flex gap-2\">\n            <button id=\"btn-demander-passager\" class=\"btn btn-outline-secondary flex-fill\">Demander à être récupéré</button>\n        </div>\n        <button id=\"btn-close-map-form\" class=\"btn btn-link btn-sm mt-2 float-end\">Fermer</button>\n    </div>\n</div>`;
+        container.innerHTML = formHtml;
+        document.getElementById('btn-close-map-form').onclick = function() {
+            container.innerHTML = '';
+        };
+        // TODO: Branche le bouton "demander à être récupéré" ici
+        {% endif %}
+    });
+    {% endif %}
+    </script>
+{% endblock %}

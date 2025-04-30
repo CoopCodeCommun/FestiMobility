@@ -1,0 +1,13 @@
+{% if matches %}
+<div class="alert alert-success">
+    <strong>Conducteurs compatibles trouvés :</strong>
+    <ul>
+        {% for conducteur in matches %}
+        <li>{{ conducteur.nom }} ({{ conducteur.ville_depart }}, {{ conducteur.nb_places }} places)</li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<div class="alert alert-warning">Aucun conducteur compatible trouvé pour ce point de prise en charge.</div>
+{% endif %}
+
